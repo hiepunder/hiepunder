@@ -1,31 +1,30 @@
-name: main
+const axios = require("axios");
+const fs = require("fs");
 
-on:
-  # Cho phép chạy bằng tay từ giao diện Github
-  workflow_dispatch:
-  # Lên lịch chạy hàng ngày vào lúc 00:00 UTC
-  schedule:
-  - cron: "0 0 * * *"
+const getQuote = async () => {
+  try {
+    const { data } = await axios.get("https://quotes.rest/qod?language=en&quot;);
+    const quote = data.contents.quotes[0].quote;
+    const author = data.contents.quotes[0].author;
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+    console.log("new quote", `"${quote}"`);
 
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      # Khởi tạo môi trường NodeJS
-      with:
-        node-version: 12.16.1
-    - run: npm ci
-    - name: Generate quote
-      # Chạy script để gọi API lấy quote sau đó sửa file README.md
-      run: npm run generate
-    - name: Update README.md
-      # Push file README.md đã được thay đổi lên github
-      run: |
-        git config --global user.email "john@example.com"
-        git config --global user.name "example"
-        git add .
-        git commit -m "Updated README.md" || echo "No changes to commit"
-        git push
+    return {
+      quote,
+      author,
+    };
+  } catch (err) {
+    console.error(err.message);
+    return {};
+  }
+};
+
+const generate = async () => {
+  const { quote, author } = await getQuote();
+
+  if (!quote) return;
+
+  fs.writeFileSync("README.md", `_**${quote}**_\n\n${author}`);
+};
+
+generate();
